@@ -21,18 +21,18 @@
       padding: 20px;
     }
 
-    .coluna-esquerda {
-      flex: 1 1 320px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
+    .coluna-esquerda, .coluna-direita {
+      flex: 1 1 100%;
     }
 
-    .coluna-direita {
-      flex: 1 1 450px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+    @media (min-width: 768px) {
+      .coluna-esquerda {
+        flex: 1 1 320px;
+      }
+
+      .coluna-direita {
+        flex: 1 1 450px;
+      }
     }
 
     .painel-controle button {
@@ -62,6 +62,7 @@
       border-radius: 5px;
       display: inline-block;
       margin-top: 10px;
+      word-break: break-all;
     }
 
     .info-estados {
@@ -74,13 +75,15 @@
 
     .painel-roda {
       position: relative;
-      width: 450px;
-      height: 450px;
+      width: 100%;
+      max-width: 450px;
+      aspect-ratio: 1 / 1;
+      margin: 0 auto;
     }
 
     canvas#roda {
-      width: 450px !important;
-      height: 450px !important;
+      width: 100% !important;
+      height: 100% !important;
       background: radial-gradient(circle at center, #0d1127 60%, #000 100%);
       border-radius: 50%;
       border: 3px solid #6272a4;
@@ -91,8 +94,8 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      width: 450px;
-      height: 450px;
+      width: 100%;
+      height: 100%;
       pointer-events: none;
       transform: translate(-50%, -50%);
     }
@@ -120,6 +123,8 @@
       border: 1px solid #50fa7b;
       background: #000;
       color: #50fa7b;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     #btn-verificar {
@@ -130,6 +135,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      margin-top: 10px;
     }
 
     #resultado-pergunta {
@@ -153,7 +159,6 @@
 <body>
 
 <main class="container">
-  
   <section class="coluna-esquerda">
     <h1>Jogo Modular Binário</h1>
 
@@ -193,11 +198,10 @@
       <div id="marcadores"></div>
     </div>
   </section>
-
 </main>
 
 <script>
-    const canvas = document.getElementById('roda');
+const canvas = document.getElementById('roda');
 const ctx = canvas.getContext('2d');
 const width = canvas.width;
 const height = canvas.height;
@@ -206,7 +210,6 @@ const centerY = height / 2;
 const radius = 180;
 
 const marcadorContainer = document.getElementById('marcadores');
-
 const binario16El = document.getElementById('binario-16');
 const voltasEl = document.getElementById('voltas');
 const posicaoEl = document.getElementById('posicao');
@@ -215,110 +218,101 @@ const totalEl = document.getElementById('total');
 const btnMover = document.getElementById('btn-mover');
 const btnResetar = document.getElementById('btn-resetar');
 
-let position = 0; // posição 0 a 255
+let position = 0;
 let rotations = 0;
 const maxPosition = 256;
-
 const marcadores = [0, 2, 4, 8, 16, 32, 64, 128];
-
-// Guarda a última posição para contar voltas corretamente
 let lastPosition = position;
 
-// Desenha a roda e ponteiro
 function drawWheel() {
   ctx.clearRect(0, 0, width, height);
-
-  // Círculo base
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-  ctx.strokeStyle = '#0a5'; // verde suave
+  ctx.strokeStyle = '#0a5';
   ctx.lineWidth = 4;
   ctx.stroke();
 
-  // Ponteiro
   const angle = (position / maxPosition) * 2 * Math.PI - Math.PI / 2;
   ctx.beginPath();
   ctx.moveTo(centerX, centerY);
   const pointerLength = radius - 30;
-  ctx.lineTo(
-    centerX + pointerLength * Math.cos(angle),
-    centerY + pointerLength * Math.sin(angle)
-  );
-  ctx.strokeStyle = '#0cf'; // azul cyan suave
+  ctx.lineTo(centerX + pointerLength * Math.cos(angle), centerY + pointerLength * Math.sin(angle));
+  ctx.strokeStyle = '#0cf';
   ctx.lineWidth = 5;
   ctx.stroke();
 
-  // Centro do ponteiro
   ctx.beginPath();
   ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
   ctx.fillStyle = '#0cf';
   ctx.fill();
 }
 
-// Atualiza as informações de texto
 function updateInfo() {
   const total = rotations * maxPosition + position;
   const binaryStr = (total & 0xFFFF).toString(2).padStart(16, '0');
   binario16El.textContent = binaryStr.slice(0, 8) + ' ' + binaryStr.slice(8);
-
   voltasEl.textContent = rotations;
   posicaoEl.textContent = position;
   totalEl.textContent = total;
 }
 
-// Posiciona marcadores no círculo (agora só o número, sem fundo)
 function posicionarMarcadores() {
   marcadorContainer.innerHTML = '';
   marcadores.forEach((val) => {
     const angle = (val / maxPosition) * 2 * Math.PI - Math.PI / 2;
     const x = centerX + (radius + 20) * Math.cos(angle);
     const y = centerY + (radius + 20) * Math.sin(angle);
-
     const div = document.createElement('div');
     div.textContent = val;
-    div.style.position = 'absolute';
     div.style.left = `${x}px`;
     div.style.top = `${y}px`;
-    div.style.transform = `translate(-50%, -50%)`;
-
-    // Só número com boa legibilidade (sem fundo)
-    div.style.color = '#50fa7b';
-    div.style.fontSize = '13px';
-    div.style.fontWeight = 'bold';
-    div.style.textShadow = '0 0 6px #50fa7b';
-
     marcadorContainer.appendChild(div);
   });
 }
 
-// Atualiza posição do ponteiro pelo mouse (drag)
 function setPositionFromMouse(x, y) {
   const dx = x - centerX;
   const dy = y - centerY;
-  let angle = Math.atan2(dy, dx); // [-PI, PI]
-  angle += Math.PI / 2; // Ajusta para 0 no topo
-
+  let angle = Math.atan2(dy, dx) + Math.PI / 2;
   if (angle < 0) angle += 2 * Math.PI;
-
-  // Converte ângulo em posição 0-255
   const newPos = Math.floor((angle / (2 * Math.PI)) * maxPosition);
-
-  // Atualiza voltas (rollover)
   const diff = newPos - lastPosition;
-  if (diff > 128) {
-    rotations--;
-  } else if (diff < -128) {
-    rotations++;
-  }
-
+  if (diff > 128) rotations--;
+  else if (diff < -128) rotations++;
   position = newPos;
   lastPosition = newPos;
-
   drawWheel();
   updateInfo();
 }
 
-// Eventos dos botões
+canvas.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  setPositionFromMouse(e.offsetX, e.offsetY);
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (isDragging) setPositionFromMouse(e.offsetX, e.offsetY);
+});
+canvas.addEventListener('mouseup', () => { isDragging = false; });
+canvas.addEventListener('mouseleave', () => { isDragging = false; });
+
+// Suporte a touch
+let isDragging = false;
+canvas.addEventListener('touchstart', (e) => {
+  isDragging = true;
+  const touch = e.touches[0];
+  const rect = canvas.getBoundingClientRect();
+  setPositionFromMouse(touch.clientX - rect.left, touch.clientY - rect.top);
+});
+canvas.addEventListener('touchmove', (e) => {
+  if (isDragging) {
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    setPositionFromMouse(touch.clientX - rect.left, touch.clientY - rect.top);
+  }
+});
+canvas.addEventListener('touchend', () => { isDragging = false; });
+canvas.addEventListener('touchcancel', () => { isDragging = false; });
+
 btnMover.addEventListener('click', () => {
   lastPosition = position;
   position++;
@@ -338,91 +332,53 @@ btnResetar.addEventListener('click', () => {
   updateInfo();
 });
 
-// Eventos de drag no canvas
-let isDragging = false;
-canvas.addEventListener('mousedown', (e) => {
-  isDragging = true;
-  setPositionFromMouse(e.offsetX, e.offsetY);
-});
-canvas.addEventListener('mousemove', (e) => {
-  if (isDragging) {
-    setPositionFromMouse(e.offsetX, e.offsetY);
-  }
-});
-canvas.addEventListener('mouseup', () => {
-  isDragging = false;
-});
-canvas.addEventListener('mouseleave', () => {
-  isDragging = false;
-});
-
-// Inicialização
 posicionarMarcadores();
 drawWheel();
 updateInfo();
 
-</script>
-<script>
-  const perguntas = [
-    {
-      pergunta: "Qual é o valor atual da posição (0 a 255)?",
-      resposta: () => position.toString()
-    },
-    {
-      pergunta: "Quantas voltas completas foram dadas?",
-      resposta: () => rotations.toString()
-    },
-    {
-      pergunta: "Qual o total absoluto (voltas * 256 + posição)?",
-      resposta: () => (rotations * maxPosition + position).toString()
-    },
-    {
-      pergunta: "Escreva o total (voltas × 256 + posição) em binário com 16 dígitos, separado por um espaço entre os 8 primeiros e os 8 últimos bits.",
-      resposta: () => {
-        const total = rotations * maxPosition + position;
-        const bin = (total & 0xFFFF).toString(2).padStart(16, '0');
-        return bin.slice(0,8) + ' ' + bin.slice(8);
-      }
-    }
-  ];
+// Perguntas
+const perguntas = [
+  { pergunta: "Qual é o valor atual da posição (0 a 255)?", resposta: () => position.toString() },
+  { pergunta: "Quantas voltas completas foram dadas?", resposta: () => rotations.toString() },
+  { pergunta: "Qual o total absoluto (voltas * 256 + posição)?", resposta: () => (rotations * maxPosition + position).toString() },
+  { pergunta: "Escreva o total (voltas × 256 + posição) em binário com 16 dígitos, separado por espaço.", resposta: () => {
+    const total = rotations * maxPosition + position;
+    const bin = (total & 0xFFFF).toString(2).padStart(16, '0');
+    return bin.slice(0,8) + ' ' + bin.slice(8);
+  }}
+];
 
-  const perguntaTextoEl = document.getElementById('pergunta-texto');
-  const respostaInput = document.getElementById('resposta');
-  const btnVerificar = document.getElementById('btn-verificar');
-  const resultadoPergunta = document.getElementById('resultado-pergunta');
-  const btnPerguntaAleatoria = document.getElementById('btn-pergunta');
+const perguntaTextoEl = document.getElementById('pergunta-texto');
+const respostaInput = document.getElementById('resposta');
+const btnVerificar = document.getElementById('btn-verificar');
+const resultadoPergunta = document.getElementById('resultado-pergunta');
+const btnPerguntaAleatoria = document.getElementById('btn-pergunta');
+let perguntaAtual = null;
 
-  let perguntaAtual = null;
+btnPerguntaAleatoria.addEventListener('click', () => {
+  perguntaAtual = perguntas[Math.floor(Math.random() * perguntas.length)];
+  perguntaTextoEl.textContent = perguntaAtual.pergunta;
+  respostaInput.value = '';
+  resultadoPergunta.textContent = '';
+  respostaInput.focus();
+});
 
-  function novaPergunta() {
-    perguntaAtual = perguntas[Math.floor(Math.random() * perguntas.length)];
-    perguntaTextoEl.textContent = perguntaAtual.pergunta;
-    respostaInput.value = '';
-    resultadoPergunta.textContent = '';
-    respostaInput.focus();
+btnVerificar.addEventListener('click', () => {
+  if (!perguntaAtual) {
+    resultadoPergunta.textContent = 'Clique em "Pergunta Aleatória" para iniciar.';
+    resultadoPergunta.style.color = '#ff5555';
+    return;
   }
-
-  btnPerguntaAleatoria.addEventListener('click', () => {
-    novaPergunta();
-  });
-
-  btnVerificar.addEventListener('click', () => {
-    if (!perguntaAtual) {
-      resultadoPergunta.textContent = 'Clique em "Pergunta Aleatória" para iniciar.';
-      resultadoPergunta.style.color = '#ff5555';
-      return;
-    }
-    const respostaUsuario = respostaInput.value.trim();
-    const respostaCorreta = perguntaAtual.resposta();
-
-    if (respostaUsuario === respostaCorreta) {
-      resultadoPergunta.textContent = '✅ Correto!';
-      resultadoPergunta.style.color = '#50fa7b';
-    } else {
-      resultadoPergunta.textContent = `❌ Errado. Resposta certa: ${respostaCorreta}`;
-      resultadoPergunta.style.color = '#ff5555';
-    }
-  });
+  const respostaUsuario = respostaInput.value.trim();
+  const respostaCorreta = perguntaAtual.resposta();
+  if (respostaUsuario === respostaCorreta) {
+    resultadoPergunta.textContent = '✅ Correto!';
+    resultadoPergunta.style.color = '#50fa7b';
+  } else {
+    resultadoPergunta.textContent = `❌ Errado. Resposta certa: ${respostaCorreta}`;
+    resultadoPergunta.style.color = '#ff5555';
+  }
+});
 </script>
 
 </body>
